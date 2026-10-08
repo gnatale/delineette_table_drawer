@@ -272,7 +272,7 @@ All operations validate view-space page bounds and minimum gap. Failed operation
 2. The drag rectangle is clamped to the view-space page bounds `[0, viewWidth] × [0, viewHeight]` (§4.1).
 3. On release, if the rectangle is too small to satisfy `MIN_BOUNDARY_GAP_PT` for at least one row and one column, discard creation.
 4. **Primary path (text layer present):** Run **§6.2 Suggest grid from text** using words clipped to the bbox. If suggestion succeeds, create a `Grid` with the returned `colBoundaries` and `rowBoundaries`.
-5. **Fallback path:** If the page has no extractable text, suggestion fails validation (§6.2), or the user disables “Suggest from text,” use a **uniform grid:** user-supplied `initialRows ≥ 1` and `initialColumns ≥ 1` (toolbar defaults, e.g. 3×3) divide the bbox into equal spans.
+5. **Fallback path:** If the page has no extractable text, suggestion returns failure because no clipped items remain (§6.2 step 2), or the user disables “Suggest from text,” use a **uniform grid:** user-supplied `initialRows ≥ 1` and `initialColumns ≥ 1` (toolbar defaults, e.g. 3×3) divide the bbox into equal spans. 
 6. `removedSegments` starts empty.
 
 The bbox used at create time becomes the grid’s outer boundary (first/last entries in `colBoundaries` / `rowBoundaries`). The user refines with §6.4–§6.7 afterward.
@@ -297,7 +297,10 @@ The bbox used at create time becomes the grid’s outer boundary (first/last ent
 4. **Row boundaries (horizontal):**
    - Outermost: `rowBoundaries[0] = bbox.yMin` (top), `rowBoundaries[n] = bbox.yMax` (bottom).
    - For each gap between adjacent row clusters (earlier cluster = **upper** on the displayed page = smaller y, later cluster = **lower** = larger y), place an internal boundary at the **vertical midpoint** between the bottom of the upper cluster’s union box (`yMax`) and the top of the lower cluster’s union box (`yMin`).
-   - Enforce `MIN_BOUNDARY_GAP_PT` between consecutive boundaries; if violated, return failure or merge rows (implementation may merge closest pair once — prefer **return failure** and uniform fallback for v1 simplicity).
+   - Enforce `MIN_BOUNDARY_GAP_PT` by merging rows. A too-small gap is a local defect; the rest of the suggestion stays.
+     - While any consecutive pair is closer than `MIN_BOUNDARY_GAP_PT`, take the closest such pair and drop its internal boundary. If both boundaries are internal, drop the earlier one (smaller y). Merge the two clusters that boundary separated. A pair that includes `bbox.yMin` or `bbox.yMax` drops the edge-adjacent internal boundary, so the outer span absorbs the short row.
+     - After each merge, recompute every internal boundary from the new clusters (same midpoint rule). Outer boundaries stay at `bbox.yMin` and `bbox.yMax`.
+     - Repeat until every consecutive pair is at least `MIN_BOUNDARY_GAP_PT` apart. Each pass removes one internal boundary, so the loop ends. One full-height row is a successful suggestion. The user can split that span afterward (§6.5).
 5. **Column occupancy (horizontal intervals without words):**
    - Over the full table bbox height (from `bbox.yMin` to `bbox.yMax`), build x-coverage: mark x intervals covered by any clipped item’s `[xMin, xMax]`.
    - Uncovered x intervals inside `[bbox.xMin, bbox.xMax]` are **gutters**.
@@ -305,7 +308,9 @@ The bbox used at create time becomes the grid’s outer boundary (first/last ent
 6. **Column boundaries (vertical):**
    - Outermost: `colBoundaries[0] = bbox.xMin`, `colBoundaries[m] = bbox.xMax`.
    - For each qualifying gutter, place an internal vertical boundary at the **horizontal center of the gutter** (product decision: **gap centers**, not gap edges).
-   - Enforce `MIN_BOUNDARY_GAP_PT` between consecutive boundaries; if violated, return failure → uniform fallback.
+   - Enforce `MIN_BOUNDARY_GAP_PT` by dropping column boundaries, same policy as rows. Gutters narrower than the minimum are already ignored above; a remaining violation is a gutter center closer than the minimum to `bbox.xMin`, `bbox.xMax`, or another boundary.
+     - While any consecutive pair is closer than `MIN_BOUNDARY_GAP_PT`, take the closest such pair and drop its internal boundary. If both are internal, drop the earlier one (smaller x). Other gutter centers stay where they are.
+     - Repeat until every consecutive pair is at least `MIN_BOUNDARY_GAP_PT` apart. One full-width column is a successful suggestion. The user can split that span afterward (§6.5).
 7. **Output:** `{ colBoundaries, rowBoundaries }` strictly increasing, length ≥ 2 each. No `removedSegments` (user adds those for merged cells).
 
 **After suggestion:** Same grid model as manual create; all edit operations apply.
@@ -313,6 +318,7 @@ The bbox used at create time becomes the grid’s outer boundary (first/last ent
 **Limitations (documented, not blocking v1):**
 
 - Multi-line cells may split into multiple suggested rows.
+- Rows or columns closer than `MIN_BOUNDARY_GAP_PT` are merged into one span; the user splits that span afterward (§6.5).
 - Ragged or misaligned columns may produce extra gutters; user removes or merges boundaries.
 - Scanned PDFs without a text layer always use uniform fallback until OCR is added (non-goal).
 

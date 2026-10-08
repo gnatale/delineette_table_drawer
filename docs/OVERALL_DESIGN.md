@@ -244,9 +244,7 @@ type Grid = {
 **Segments (exportable pieces):**
 
 - **Vertical** segment: boundary index `b`, row span index `r` — line from `(colBoundaries[b], rowBoundaries[r])` to `(colBoundaries[b], rowBoundaries[r+1])`.
-- **Horizontal** segment: boundary index `b`, column span index `c` — line from `(colBoundaries[b], rowBoundaries[c])` to `(colBoundaries[b+1], rowBoundaries[c])` for horizontal boundaries (see implementation naming: horizontal uses `rowBoundaries[b]` as constant y).
-
-*Convention for horizontal boundaries:* boundary index `b` on rows uses fixed `y = rowBoundaries[b]` and x from `colBoundaries[c]` to `colBoundaries[c+1]`.
+- **Horizontal** segment: boundary index `b`, column span index `c` — line from `(colBoundaries[c], rowBoundaries[b])` to `(colBoundaries[c+1], rowBoundaries[b])`.
 
 A segment is **drawn** (editor + export) iff it is not listed in `removedSegments`.
 

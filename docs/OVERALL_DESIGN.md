@@ -49,13 +49,13 @@
 
 **Deployment note:** pdf.js workers do not behave reliably when the app is opened via `file://`. Serve the static build with any local or hosted static server (Vite dev server, GitHub Pages, etc.). The app remains “frontend-only.”
 
-### 2.2 Alternative stack: MuPDF.wasm
+### 2.2 Rejected alternative: MuPDF.wasm
 
 MuPDF can render and edit PDFs in one WASM engine, which reduces coordinate mismatch risk between viewer and exporter and improves fidelity on damaged or unusual files.
 
 **Trade-off:** Larger binary, lower-level API, and **AGPL-3.0** (or commercial license). Shipping to end users under AGPL requires offering corresponding source.
 
-The design keeps **pdf.js + pdf-lib** as the implementation default until a deliberate license or fidelity decision switches to MuPDF.
+The stack stays **pdf.js + pdf-lib**. v1 does not switch to MuPDF.wasm.
 
 ### 2.3 Why not annotations or raster stamps?
 
@@ -214,7 +214,8 @@ Some PDFs declare an incorrect `/Rotate` (0, 90, 180, or 270) while page content
 - `documentMetadata` — page count, per-page PDF clamp box, unrotated `pageWidth` / `pageHeight`, `pdfRotate` (from pdf.js / pdf-lib loaders). `viewWidth` / `viewHeight` are derived (§4.1).
 - `pageRotationOffsets: number[]` — length = page count; each entry is `0 | 90 | 180 | 270` (default `0`). Effective rotation is derived (§4.6).
 - `grids: Grid[]` — all grids across all pages. Boundaries are view space for the page’s current `effectiveRotate`.
-- `history` — undo stack (cap ~100). Each entry snapshots `grids` and `pageRotationOffsets` together, so undoing a rotation restores the previous offset and any grids that rotation removed.
+- `style: GridStyle` — one line style for every grid (§5.3). The editor and export both use it.
+- `history` — undo stack (cap ~100). Each entry snapshots `grids`, `pageRotationOffsets`, and `style` together, so undoing a rotation restores the previous offset and any grids that rotation removed.
 
 ### 5.2 Grid
 
@@ -236,7 +237,6 @@ type Grid = {
   colBoundaries: number[]; // length = columns + 1, strictly increasing x (view space)
   rowBoundaries: number[]; // length = rows + 1, strictly increasing y down (view space)
   removedSegments: SegmentRef[];
-  style: GridStyle;
 };
 ```
 
@@ -266,6 +266,7 @@ A segment is **drawn** (editor + export) iff it is not listed in `removedSegment
 ### 5.4 Multiple grids
 
 - Any number of grids per page; grids may overlap visually.
+- When two grids share an edge, the editor and export draw both strokes. Boundaries are not snapped together.
 - A single grid cannot span multiple pages.
 
 ---
@@ -398,11 +399,11 @@ If that page’s `effectiveRotate` would be unchanged, skip it. Otherwise, **rem
 
 Does not modify `sourcePdfBytes`. Triggers re-render of affected pages only. One undo step covers the whole batch (§6.10).
 
-### 6.10 Undo / redo
+### 6.10 Undo
 
-- Snapshot: deep copy of `grids` and `pageRotationOffsets` (or structural sharing if immutable updates).
-- One snapshot per completed gesture: pointer-up on drag, discrete actions for add/remove/split/delete segment/delete grid, and each page-rotation batch (grid deletion and offset change together).
-- Cap stack depth (~100). Redo optional in v1; if omitted, new edits clear redo branch.
+- Snapshot: deep copy of `grids`, `pageRotationOffsets`, and `style` (or structural sharing if immutable updates).
+- One snapshot per completed gesture: pointer-up on drag, discrete actions for add/remove/split/delete segment/delete grid, a change to the global line style, and each page-rotation batch (grid deletion and offset change together).
+- Cap stack depth (~100). v1 is undo only; there is no redo stack.
 
 ---
 
@@ -410,7 +411,7 @@ Does not modify `sourcePdfBytes`. Triggers re-render of affected pages only. One
 
 ### 7.1 Layout
 
-- **Toolbar:** Open PDF, save project, load project, export PDF, undo; tool mode (select / create grid / remove segment); **create grid:** “Suggest from text” toggle (default on when page has text), row/column inputs for **uniform fallback** only; optional per-grid style; **page rotation** (CW / CCW / reset) applying to the current page selection. Rotation removes grids on each page whose effective rotation changes (§6.9).
+- **Toolbar:** Open PDF, save project, load project, export PDF, undo; tool mode (select / create grid / remove segment); **create grid:** “Suggest from text” toggle (default on when page has text), row/column inputs for **uniform fallback** only; global line style (color and width, §5.1); **page rotation** (CW / CCW / reset) applying to the current page selection. Rotation removes grids on each page whose effective rotation changes (§6.9).
 - **Main area:** Vertically stacked pages (or virtualized list for large documents). Each page: canvas (pdf.js) + SVG overlay aligned to the same viewport transform (`effectiveRotate`).
 - **Sidebar (optional):** Page thumbnails with multi-select, rotation indicator when corrected, list of grids on current page, warnings (e.g. grids on missing pages after reload).
 
@@ -435,7 +436,7 @@ Does not modify `sourcePdfBytes`. Triggers re-render of affected pages only. One
 
 ### 8.1 Container
 
-Zip archive (conventional extension e.g. `.pdfgrid` or `.zip`):
+Zip archive with extension `.zip`:
 
 | Entry | Content |
 | --- | --- |
@@ -449,11 +450,13 @@ Zip archive (conventional extension e.g. `.pdfgrid` or `.zip`):
   "version": 1,
   "sourceSha256": "<hex SHA-256 of source.pdf>",
   "pageRotationOffsets": [ 0, 90, 0 ],
+  "style": { "strokeColor": "#000000", "strokeWidth": 0.75 },
   "grids": [ /* Grid[] serialized */ ]
 }
 ```
 
 - `pageRotationOffsets` is optional on load for backward compatibility; missing array implies all zeros. Length should match page count; if shorter, pad with `0`; if longer, ignore extras and warn.
+- `style` is the global line style (§5.1). A missing object uses the §5.3 default.
 - Grid boundary numbers in `grids` are **view space** for the corresponding `pageIndex` at that page’s effective rotation (`pdfRotate` from `source.pdf` plus `pageRotationOffsets`). Reload assumes the source PDF clamp boxes match; if not, warn and clamp or skip affected grids (implementation detail in plan 6).
 
 ### 8.3 Load behavior
@@ -478,8 +481,8 @@ Zip archive (conventional extension e.g. `.pdfgrid` or `.zip`):
 
 Wrap appended content in `q` … `Q`. Set explicitly:
 
-- Stroke color (RGB from grid style)
-- Line width
+- Stroke color (RGB from the global style)
+- Line width (from the global style)
 - Line cap (butt) and join (miter)
 
 Do not rely on inherited state from existing page content (blend modes, extended graphics state).
@@ -568,18 +571,6 @@ Each item below should become a **separate detailed plan** that can land indepen
 
 ---
 
-## 14. Open questions (for iteration)
-
-Record decisions here as the document evolves:
-
-1. **File extension** for project zip (`.pdfgrid` vs `.zip`).
-2. **Redo** in v1 or undo-only.
-3. **Per-grid vs global** default line style in UI.
-4. **Overlap policy** when two grids share an edge (draw both strokes vs snap — v1: draw both).
-5. **Switch to MuPDF.wasm** if AGPL/commercial path is acceptable and coordinate bugs persist after plan 7.
-
----
-
 ## Document history
 
 | Version | Date | Notes |
@@ -591,3 +582,8 @@ Record decisions here as the document evolves:
 | 1.4 | 2026-10-08 | **Canonical view space** for grids and suggestion (§4.1, §6.2); rotation deletes that page’s grids instead of transforming them (§4.6, §6.9) |
 | 1.5 | 2026-10-08 | `SegmentRef` uses `rowIndex` and `columnIndex` into `rowBoundaries` and `colBoundaries` (§5.2); split/remove remap those indices (§6.5, §6.6). A split does not add `removedSegments` entries for the new boundary |
 | 1.6 | 2026-10-08 | Password-protected PDFs are out of scope (§1, §9.5); password UI removed from plan 8 |
+| 1.7 | 2026-10-08 | Project archive extension is `.zip` (§8.1) |
+| 1.8 | 2026-10-08 | v1 is undo only; no redo stack (§6.10) |
+| 1.9 | 2026-10-08 | One global line style for every grid (§5.1, §8.2); `Grid` no longer stores `style` |
+| 1.10 | 2026-10-08 | Overlapping grids draw both strokes; shared edges are not snapped (§5.4) |
+| 1.11 | 2026-10-08 | Stack stays pdf.js + pdf-lib; no switch to MuPDF.wasm (§2.2) |

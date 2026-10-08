@@ -29,6 +29,7 @@
 - Incremental PDF updates (whole-file rewrite in memory is acceptable).
 - Guaranteed PDF/A conformance after export (appending content may break PDF/A).
 - **Physical rotation of page content** in the content stream (e.g. scanned pages drawn sideways while `/Rotate` is 0). v1 only adjusts display/export **rotation metadata** and draws grids consistently with the corrected view; it does not rewrite or rasterize existing page content.
+- **Password-protected PDFs.** No password prompt, and no open or export path for an encrypted file (§9.5).
 
 ---
 
@@ -218,9 +219,11 @@ Some PDFs declare an incorrect `/Rotate` (0, 90, 180, or 270) while page content
 ### 5.2 Grid
 
 ```ts
-type SegmentRef =
-  | { axis: "vertical"; boundaryIndex: number; spanIndex: number }
-  | { axis: "horizontal"; boundaryIndex: number; spanIndex: number };
+type SegmentRef = {
+  axis: "vertical" | "horizontal";
+  rowIndex: number;    // index into rowBoundaries
+  columnIndex: number; // index into colBoundaries
+};
 
 type GridStyle = {
   strokeColor: string;   // e.g. "#000000"
@@ -241,10 +244,15 @@ type Grid = {
 
 **Row labeling in UI:** Row span `0` is the **topmost** row on the displayed page (`rowBoundaries[0]` is the top edge). Label “row 1” as span `0` if desired; storage order is top → bottom (increasing y down).
 
-**Segments (exportable pieces):**
+**Segments (exportable pieces):** Each `SegmentRef` is the unit edge whose top-left corner is `(colBoundaries[columnIndex], rowBoundaries[rowIndex])`. `columnIndex` always indexes `colBoundaries`. `rowIndex` always indexes `rowBoundaries`. `axis` selects the direction:
 
-- **Vertical** segment: boundary index `b`, row span index `r` — line from `(colBoundaries[b], rowBoundaries[r])` to `(colBoundaries[b], rowBoundaries[r+1])`.
-- **Horizontal** segment: boundary index `b`, column span index `c` — line from `(colBoundaries[c], rowBoundaries[b])` to `(colBoundaries[c+1], rowBoundaries[b])`.
+- **Vertical:** from `(colBoundaries[columnIndex], rowBoundaries[rowIndex])` to `(colBoundaries[columnIndex], rowBoundaries[rowIndex + 1])`. `columnIndex` is the vertical line. `rowIndex` is the start of the row span.
+- **Horizontal:** from `(colBoundaries[columnIndex], rowBoundaries[rowIndex])` to `(colBoundaries[columnIndex + 1], rowBoundaries[rowIndex])`. `rowIndex` is the horizontal line. `columnIndex` is the start of the column span.
+
+**Valid ranges** depend on that grid’s boundary arrays. The type does not encode them; edit operations and project load reject or drop a ref outside these bounds:
+
+- **Vertical:** `columnIndex` ∈ `[0, colBoundaries.length - 1]` (the line, including both outer borders), `rowIndex` ∈ `[0, rowBoundaries.length - 2]` (start of a row span).
+- **Horizontal:** `rowIndex` ∈ `[0, rowBoundaries.length - 1]` (the line, including both outer borders), `columnIndex` ∈ `[0, colBoundaries.length - 2]` (start of a column span).
 
 A segment is **drawn** (editor + export) iff it is not listed in `removedSegments`.
 
@@ -347,13 +355,12 @@ User selects a row span or column span (or uses context action on selection), th
 
 **Split column span `s` (insert new vertical boundary):**
 
-- Insert new x at midpoint between `colBoundaries[s]` and `colBoundaries[s+1]`.
-- Increment `boundaryIndex` by +1 for all vertical segments where `boundaryIndex > s`.
-- Increment `spanIndex` by +1 for all horizontal segments where `spanIndex > s`.
-- New boundary has no removals.
-- For each horizontal segment on span `s`: if present, both new spans inherit the same presence; if removed on span `s`, both new spans are removed (same `boundaryIndex`/`spanIndex` remapping rules apply).
+- Insert new x at midpoint between `colBoundaries[s]` and `colBoundaries[s+1]`. The new boundary’s index is `s+1`; column boundaries that were at an index greater than `s` move to index + 1.
+- Do not append to `removedSegments`. Existing entries still refer to the boundaries and spans from before the split.
+- Increment `columnIndex` by +1 on every existing entry where `columnIndex > s`, so those entries keep that reference after the insertion. An entry with `columnIndex === s` stays at `s` and now covers only the left half of the split span.
+- The new boundary (`columnIndex === s+1`) has no `removedSegments` entries. Its vertical segments are drawn, and so are the horizontal segments on the new span.
 
-**Split row span `s`:** Symmetric on y / horizontal boundaries.
+**Split row span `s`:** Symmetric on `rowIndex`. Do not append to `removedSegments`. Increment `rowIndex` where `rowIndex > s`. The new horizontal boundary is drawn.
 
 ### 6.6 Remove row or column
 
@@ -363,10 +370,11 @@ At least one row and one column must remain.
 
 - Delete boundary at index `s+1` (remove `colBoundaries[s+1]`).
 - Shift all x boundaries with index > s+1 left by width of span `s` (grid narrows; left edge fixed).
-- Drop segment refs that referred only to the removed boundary or removed span.
-- Decrement indices in `removedSegments` per remapping rules (vertical segments on removed boundary; horizontal segments on removed span; shift higher indices).
+- Drop vertical removed-segments on the deleted line (`columnIndex === s+1`).
+- Drop horizontal removed-segments on the removed span (`columnIndex === s`).
+- Decrement `columnIndex` by 1 on every remaining removed segment where `columnIndex > s`.
 
-**Remove row span `s`:** Symmetric on y (**top** edge of grid fixed in view space; lower boundaries move up).
+**Remove row span `s`:** Symmetric on `rowIndex`. Drop horizontal removed-segments on the deleted line (`rowIndex === s+1`) and vertical removed-segments on the removed span (`rowIndex === s`), then decrement `rowIndex` by 1 wherever `rowIndex > s`. The **top** edge of the grid stays fixed in view space; lower boundaries move up.
 
 ### 6.7 Merged cells (segment remove / restore)
 
@@ -489,8 +497,7 @@ Default: moveto–lineto–stroke per segment. Optimization (merge colinear cont
 
 ### 9.5 Encrypted PDFs
 
-- If pdf.js prompts for password to display, collect password in UI.
-- If pdf-lib cannot load/save with that password, export fails with a clear error.
+Out of scope for now (§1 non-goals). The app does not prompt for a password and does not open or export an encrypted PDF.
 
 ### 9.6 Verification
 
@@ -555,7 +562,7 @@ Each item below should become a **separate detailed plan** that can land indepen
 | 5 | Selection and undo | Selection model, history stack, keyboard nudge (optional) |
 | 6 | Project zip | Save/load §8 format, hash check, missing-page warnings |
 | 7 | Content-stream export | pdf-lib adapter, set `/Rotate` on export, download, visual regression on fixtures |
-| 8 | Scale and polish | Page virtualization, render cancellation, password UI, page multi-select rotation |
+| 8 | Scale and polish | Page virtualization, render cancellation, page multi-select rotation |
 
 **Order constraint:** Plans **2** and **3** before **4**. Plan **3b** before or with **4** (create-grid UX depends on it).
 
@@ -582,3 +589,5 @@ Record decisions here as the document evolves:
 | 1.2 | 2026-10-07 | Text-assisted grid suggestion (§6.2); column lines at gutter **centers**; OCR/vector line detect remain non-goals |
 | 1.3 | 2026-10-07 | **Canonical page space (top-left, y down)**; TL ↔ PDF conversion only in `pdf` module (§4) |
 | 1.4 | 2026-10-08 | **Canonical view space** for grids and suggestion (§4.1, §6.2); rotation deletes that page’s grids instead of transforming them (§4.6, §6.9) |
+| 1.5 | 2026-10-08 | `SegmentRef` uses `rowIndex` and `columnIndex` into `rowBoundaries` and `colBoundaries` (§5.2); split/remove remap those indices (§6.5, §6.6). A split does not add `removedSegments` entries for the new boundary |
+| 1.6 | 2026-10-08 | Password-protected PDFs are out of scope (§1, §9.5); password UI removed from plan 8 |

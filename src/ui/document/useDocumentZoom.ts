@@ -6,8 +6,8 @@ import {
   type RefObject,
 } from 'react'
 
+import { scaleFromWheelDelta } from '../shared/zoom.ts'
 import { anchorAtCenter, scrollToHoldAnchor, type ZoomAnchor } from './zoomAnchor.ts'
-import { scaleFromWheelDelta } from './zoom.ts'
 
 export function useDocumentZoom(
   scrollRef: RefObject<HTMLDivElement | null>,

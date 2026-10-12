@@ -1,6 +1,6 @@
 import type { PDFPageProxy } from 'pdfjs-dist'
 
-import { clampScale } from './zoom.ts'
+import { clampScale } from '../shared/zoom.ts'
 
 /** Page whose top edge is closest to the scroll viewport top. */
 export function nearestPage(

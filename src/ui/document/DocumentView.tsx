@@ -6,6 +6,7 @@ import { PageCanvas } from './PageCanvas.tsx'
 import { useDocumentPan } from './useDocumentPan.ts'
 import { useDocumentZoom } from './useDocumentZoom.ts'
 import { usePdfPages } from './usePdfPages.ts'
+import './DocumentView.css'
 
 const PAGE_STACK_PADDING_PX = 16
 

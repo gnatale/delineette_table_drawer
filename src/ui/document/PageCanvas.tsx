@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react'
 import type { PDFPageProxy } from 'pdfjs-dist'
 
-import { renderPageToCanvas } from '../pdf/index.ts'
+import { renderPageToCanvas } from '../../pdf/index.ts'
+import './PageCanvas.css'
 
 type PageCanvasProps = {
   page: PDFPageProxy

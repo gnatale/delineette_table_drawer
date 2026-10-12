@@ -1,6 +1,7 @@
 import { useRef, type ChangeEvent } from 'react'
 
-import { formatZoomPercent } from './zoom.ts'
+import { formatZoomPercent } from '../shared/zoom.ts'
+import './Toolbar.css'
 
 type ToolbarProps = {
   scale: number

@@ -1,0 +1,5 @@
+.page-canvas {
+  display: block;
+  background: #fff;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 20%);
+}

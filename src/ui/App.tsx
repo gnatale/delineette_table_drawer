@@ -2,9 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { PDFDocumentProxy } from 'pdfjs-dist'
 
 import { LoadPdfError, loadDocument } from '../pdf/index.ts'
-import { DocumentView, type DocumentViewHandle } from './DocumentView.tsx'
-import { Toolbar } from './Toolbar.tsx'
-import { zoomInFromToolbar, zoomOutFromToolbar } from './zoom.ts'
+import { DocumentView, type DocumentViewHandle } from './document/DocumentView.tsx'
+import { zoomInFromToolbar, zoomOutFromToolbar } from './shared/zoom.ts'
+import { Toolbar } from './toolbar/Toolbar.tsx'
 import './App.css'
 
 type ViewerStatus = 'empty' | 'loading' | 'ready' | 'error'

@@ -1,0 +1,46 @@
+.document-scroll {
+  flex: 1;
+  overflow: auto;
+  background: #e8e8e8;
+  touch-action: pan-x pan-y;
+}
+
+.document-scroll--panning {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.document-scroll:not(.document-scroll--panning):focus-within {
+  outline: none;
+}
+
+.document-message {
+  margin: 0;
+  padding: 24px;
+  text-align: center;
+}
+
+.document-message--empty,
+.document-message--loading {
+  color: #555;
+}
+
+.document-message--error {
+  color: #8b0000;
+  max-width: 32rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.page-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  min-height: min-content;
+}
+
+.page-wrapper {
+  line-height: 0;
+}

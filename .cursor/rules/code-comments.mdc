@@ -1,0 +1,30 @@
+---
+description: Brief JSDoc and comments only for non-obvious reasons
+globs: src/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Comments for implicit reasons
+
+**Exported hooks, components, and functions:** add a one- or two-sentence JSDoc when the job or a constraint is not obvious from the name. Model: `usePdfPages.ts`, `PageCanvas.tsx`. Skip JSDoc that only repeats the identifier.
+
+**Inline comments:** add a short note when the code is correct for a reason the next reader would not see:
+
+- Pointer capture so drag continues when the pointer leaves the element
+- Resetting a zoom anchor so the next zoom must set it again
+- Ctrl/Cmd wheel vs plain scroll (trackpad pinch sets `ctrlKey`)
+- Generation counters so stale async results cannot overwrite newer state
+
+Comment the **constraint**, not the statement. Do not comment straightforward assignments, early returns, or JSX.
+
+Keep comments next to the line they explain. A few lines is enough; the `PageCanvas` render-cancellation JSDoc is the upper bound for length.
+
+```typescript
+// ❌ BAD — restates the code
+el.scrollLeft = next.scrollLeft
+
+// ✅ GOOD — explains why
+/* capture the pointer so we can move the page without losing it
+ * when the pointer leaves the element */
+el.setPointerCapture(event.pointerId)
+```

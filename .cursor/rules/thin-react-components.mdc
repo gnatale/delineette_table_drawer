@@ -1,0 +1,45 @@
+---
+description: Keep TSX thin; put state and complex logic in colocated hooks
+globs: src/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Thin React components
+
+`.tsx` files compose UI. They may take props, hold DOM refs, call hooks, derive simple view flags (`showEmpty`, `showError`), and return JSX.
+
+Move into a colocated `use*.ts` hook next to the component:
+
+- `useState` and derived state
+- `useEffect` / `useLayoutEffect`
+- Async work and loading/error status
+- Gesture and keyboard handling
+- Handlers with branches, awaits, or more than a couple of statements
+
+Follow `usePdfDocument.ts`, `useDocumentPan.ts`, and `useDocumentZoom.ts`.
+
+A component may keep a one-line adapter that only forwards to a prop or ref (e.g. toolbar file-input click). If a handler grows, extract it.
+
+Pure calculations with no React state belong in plain modules (`panGesture.ts`, `zoomAnchor.ts`); hooks call them.
+
+```tsx
+// ❌ BAD — pan state and pointer handlers inline in the component
+function DocumentView() {
+  const [isPanning, setIsPanning] = useState(false)
+  const onPointerDown = (event) => { /* ... */ }
+  // ...
+}
+
+// ✅ GOOD — hook owns behavior; component wires JSX
+function DocumentView() {
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const pan = useDocumentPan(scrollRef)
+  return (
+    <div
+      ref={scrollRef}
+      onPointerDown={pan.onPointerDown}
+      onPointerMove={pan.onPointerMove}
+    />
+  )
+}
+```

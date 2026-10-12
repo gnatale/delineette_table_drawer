@@ -1,16 +1,16 @@
-import { useRef, type ChangeEvent } from 'react'
+import { useRef, type ChangeEvent } from "react";
 
-import { formatZoomPercent } from '../shared/zoom.ts'
-import './Toolbar.css'
+import { formatZoomPercent } from "../shared/zoom.ts";
+import "./Toolbar.css";
 
 type ToolbarProps = {
-  scale: number
-  onOpenFile: (file: File) => void
-  onZoomIn: () => void
-  onZoomOut: () => void
-  onFitWidth: () => void
-  documentOpen: boolean
-}
+  scale: number;
+  onOpenFile: (file: File) => void;
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  onFitWidth: () => void;
+  documentOpen: boolean;
+};
 
 export function Toolbar({
   scale,
@@ -20,19 +20,19 @@ export function Toolbar({
   onFitWidth,
   documentOpen,
 }: ToolbarProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const onPickFile = () => {
-    fileInputRef.current?.click()
-  }
+    fileInputRef.current?.click();
+  };
 
   const onFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    event.target.value = ''
+    const file = event.target.files?.[0];
+    event.target.value = "";
     if (file) {
-      onOpenFile(file)
+      onOpenFile(file);
     }
-  }
+  };
 
   return (
     <header className="toolbar">
@@ -76,5 +76,5 @@ export function Toolbar({
         </button>
       </div>
     </header>
-  )
+  );
 }

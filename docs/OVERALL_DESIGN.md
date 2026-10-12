@@ -37,13 +37,13 @@
 
 ### 2.1 Working stack (default)
 
-| Layer | Choice | License | Role |
-| --- | --- | --- | --- |
-| App shell | Vite + React + TypeScript | MIT | UI, tooling, static deploy |
-| PDF display | pdf.js (`pdfjs-dist`) | Apache-2.0 | Render pages to canvas; viewport transforms; `getTextContent` for grid suggestion |
-| Grid editor | SVG overlay | — | Segments, handles, hit testing |
-| Project archive | fflate (or similar) | MIT | Zip `source.pdf` + `project.json` |
-| PDF export | pdf-lib | MIT | Load bytes, append stroke operators, save |
+| Layer           | Choice                    | License    | Role                                                                              |
+| --------------- | ------------------------- | ---------- | --------------------------------------------------------------------------------- |
+| App shell       | Vite + React + TypeScript | MIT        | UI, tooling, static deploy                                                        |
+| PDF display     | pdf.js (`pdfjs-dist`)     | Apache-2.0 | Render pages to canvas; viewport transforms; `getTextContent` for grid suggestion |
+| Grid editor     | SVG overlay               | —          | Segments, handles, hit testing                                                    |
+| Project archive | fflate (or similar)       | MIT        | Zip `source.pdf` + `project.json`                                                 |
+| PDF export      | pdf-lib                   | MIT        | Load bytes, append stroke operators, save                                         |
 
 **Rationale:** pdf.js is the de facto in-browser renderer and exposes viewport mapping for overlay alignment. pdf-lib can append real drawing operators to existing page content streams without rasterizing the page. Both are permissively licensed for a shipped frontend.
 
@@ -85,11 +85,11 @@ flowchart LR
 
 Later implementation plans must respect these seams:
 
-| Module | Responsibility | Must not |
-| --- | --- | --- |
-| **`core`** | Grid model, edit operations, segment enumeration, undo snapshots, page-box clamping, **`suggestGridFromText`** (§6.2) | Import pdf.js, pdf-lib, or React |
-| **`pdf`** | Load document, page boxes, render adapter, export adapter, **view ↔ PDF conversion** (including `effectiveRotate`), text quads → view-space boxes | Own UI state or grid business rules |
-| **`ui`** | File pickers, page list, tools, SVG interaction, wiring to `core` and `pdf` | Embed coordinate or remapping logic that belongs in `core` or `pdf` |
+| Module     | Responsibility                                                                                                                                    | Must not                                                            |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| **`core`** | Grid model, edit operations, segment enumeration, undo snapshots, page-box clamping, **`suggestGridFromText`** (§6.2)                             | Import pdf.js, pdf-lib, or React                                    |
+| **`pdf`**  | Load document, page boxes, render adapter, export adapter, **view ↔ PDF conversion** (including `effectiveRotate`), text quads → view-space boxes | Own UI state or grid business rules                                 |
+| **`ui`**   | File pickers, page list, tools, SVG interaction, wiring to `core` and `pdf`                                                                       | Embed coordinate or remapping logic that belongs in `core` or `pdf` |
 
 All persisted grid geometry lives in **view space** (see §4.1): the page as displayed under `effectiveRotate`. **`core` and `project.json` never store PDF user-space values.** The **`pdf`** module converts on read (text, pointer) and write (export). `core` does not apply rotation; a rotation change deletes grids (§6.9) instead of transforming their coordinates.
 
@@ -101,12 +101,12 @@ All persisted grid geometry lives in **view space** (see §4.1): the page as dis
 
 The coordinate system for grids, grid clamping, text suggestion, and project JSON is **view space**: the clamp rectangle as displayed under that page’s `effectiveRotate` (§4.6).
 
-| Property | Rule |
-| --- | --- |
-| Origin | **Top-left** corner of the displayed page (clamp rectangle after `effectiveRotate`) |
-| +x | To the right on the displayed page |
-| +y | **Down** on the displayed page (same sense as CSS / screen layout) |
-| Units | Points (1/72 inch) |
+| Property | Rule                                                                                |
+| -------- | ----------------------------------------------------------------------------------- |
+| Origin   | **Top-left** corner of the displayed page (clamp rectangle after `effectiveRotate`) |
+| +x       | To the right on the displayed page                                                  |
+| +y       | **Down** on the displayed page (same sense as CSS / screen layout)                  |
+| Units    | Points (1/72 inch)                                                                  |
 
 `colBoundaries` are **vertical** lines on the displayed page (strictly increasing x). `rowBoundaries` are **horizontal** lines (strictly increasing y down). A 90° or 270° effective rotation swaps which PDF-page axis is vertical on screen; storage follows the screen, so a column separator the user sees stays a column boundary.
 
@@ -185,11 +185,11 @@ Pointer proximity to a segment uses a tolerance in CSS pixels (e.g. 6px), conver
 
 Some PDFs declare an incorrect `/Rotate` (0, 90, 180, or 270) while page content is already laid out in normal user space. The app treats rotation as two parts:
 
-| Term | Meaning |
-| --- | --- |
-| `pdfRotate` | Rotation read from the PDF page dictionary (pdf.js / pdf-lib). |
-| `rotationOffset` | User correction for that page, in 90° steps: `0`, `90`, `180`, or `270`. Added on top of `pdfRotate`. |
-| `effectiveRotate` | `(pdfRotate + rotationOffset) mod 360`, normalized to `0 \| 90 \| 180 \| 270`. |
+| Term              | Meaning                                                                                               |
+| ----------------- | ----------------------------------------------------------------------------------------------------- |
+| `pdfRotate`       | Rotation read from the PDF page dictionary (pdf.js / pdf-lib).                                        |
+| `rotationOffset`  | User correction for that page, in 90° steps: `0`, `90`, `180`, or `270`. Added on top of `pdfRotate`. |
+| `effectiveRotate` | `(pdfRotate + rotationOffset) mod 360`, normalized to `0 \| 90 \| 180 \| 270`.                        |
 
 **Rules:**
 
@@ -222,18 +222,18 @@ Some PDFs declare an incorrect `/Rotate` (0, 90, 180, or 270) while page content
 ```ts
 type SegmentRef = {
   axis: "vertical" | "horizontal";
-  rowIndex: number;    // index into rowBoundaries
+  rowIndex: number; // index into rowBoundaries
   columnIndex: number; // index into colBoundaries
 };
 
 type GridStyle = {
-  strokeColor: string;   // e.g. "#000000"
-  strokeWidth: number;   // points, default 0.75
+  strokeColor: string; // e.g. "#000000"
+  strokeWidth: number; // points, default 0.75
 };
 
 type Grid = {
-  id: string;              // stable UUID for selection and project JSON
-  pageIndex: number;       // 0-based
+  id: string; // stable UUID for selection and project JSON
+  pageIndex: number; // 0-based
   colBoundaries: number[]; // length = columns + 1, strictly increasing x (view space)
   rowBoundaries: number[]; // length = rows + 1, strictly increasing y down (view space)
   removedSegments: SegmentRef[];
@@ -281,7 +281,7 @@ All operations validate view-space page bounds and minimum gap. Failed operation
 2. The drag rectangle is clamped to the view-space page bounds `[0, viewWidth] × [0, viewHeight]` (§4.1).
 3. On release, if the rectangle is too small to satisfy `MIN_BOUNDARY_GAP_PT` for at least one row and one column, discard creation.
 4. **Primary path (text layer present):** Run **§6.2 Suggest grid from text** using words clipped to the bbox. If suggestion succeeds, create a `Grid` with the returned `colBoundaries` and `rowBoundaries`.
-5. **Fallback path:** If the page has no extractable text, suggestion returns failure because no clipped items remain (§6.2 step 2), or the user disables “Suggest from text,” use a **uniform grid:** user-supplied `initialRows ≥ 1` and `initialColumns ≥ 1` (toolbar defaults, e.g. 3×3) divide the bbox into equal spans. 
+5. **Fallback path:** If the page has no extractable text, suggestion returns failure because no clipped items remain (§6.2 step 2), or the user disables “Suggest from text,” use a **uniform grid:** user-supplied `initialRows ≥ 1` and `initialColumns ≥ 1` (toolbar defaults, e.g. 3×3) divide the bbox into equal spans.
 6. `removedSegments` starts empty.
 
 The bbox used at create time becomes the grid’s outer boundary (first/last entries in `colBoundaries` / `rowBoundaries`). The user refines with §6.4–§6.7 afterward.
@@ -417,12 +417,12 @@ Does not modify `sourcePdfBytes`. Triggers re-render of affected pages only. One
 
 ### 7.2 Tools
 
-| Tool | Behavior |
-| --- | --- |
-| Select | Click grid to select; drag interior to move; drag boundary to resize spans |
-| Create grid | Drag table bbox; suggest boundaries from text (§6.2) or uniform rows/columns if fallback |
-| Remove segment | Click segment to toggle removal (shift-click or second tool mode to restore) |
-| Add/remove row/col | Context menu or panel actions on selected grid |
+| Tool               | Behavior                                                                                 |
+| ------------------ | ---------------------------------------------------------------------------------------- |
+| Select             | Click grid to select; drag interior to move; drag boundary to resize spans               |
+| Create grid        | Drag table bbox; suggest boundaries from text (§6.2) or uniform rows/columns if fallback |
+| Remove segment     | Click segment to toggle removal (shift-click or second tool mode to restore)             |
+| Add/remove row/col | Context menu or panel actions on selected grid                                           |
 
 ### 7.3 Feedback
 
@@ -438,10 +438,10 @@ Does not modify `sourcePdfBytes`. Triggers re-render of affected pages only. One
 
 Zip archive with extension `.zip`:
 
-| Entry | Content |
-| --- | --- |
-| `source.pdf` | Original PDF bytes, unchanged |
-| `project.json` | UTF-8 JSON (schema below) |
+| Entry          | Content                       |
+| -------------- | ----------------------------- |
+| `source.pdf`   | Original PDF bytes, unchanged |
+| `project.json` | UTF-8 JSON (schema below)     |
 
 ### 8.2 `project.json` (version 1)
 
@@ -449,9 +449,9 @@ Zip archive with extension `.zip`:
 {
   "version": 1,
   "sourceSha256": "<hex SHA-256 of source.pdf>",
-  "pageRotationOffsets": [ 0, 90, 0 ],
+  "pageRotationOffsets": [0, 90, 0],
   "style": { "strokeColor": "#000000", "strokeWidth": 0.75 },
-  "grids": [ /* Grid[] serialized */ ]
+  "grids": [/* Grid[] serialized */]
 }
 ```
 
@@ -522,13 +522,13 @@ The in-memory **source** bytes and the `source.pdf` entry in a project zip are n
 
 ## 10. Testing strategy
 
-| Area | Approach |
-| --- | --- |
-| `core` edit ops | Pure unit tests: boundaries, remapping of `removedSegments`, min gap, page clamp; **`suggestGridFromText`** with synthetic word boxes |
-| Coordinates | View ↔ unrotated page ↔ PDF round-trip tests, including 90° and 270° axis swap; fixture PDFs: portrait, landscape, Rotate 90/180/270, CropBox ≠ MediaBox; non-zero `rotationOffset` with matching export `/Rotate` |
-| Export | Byte-level smoke (PDF loads) + rendered pixel probes on known segment positions; assert exported `/Rotate` equals `effectiveRotate` |
-| Page rotation | Unit: a rotation that changes `effectiveRotate` removes that page’s grids and leaves other pages alone; unchanged effective rotation is a no-op. Manual: wrong-Rotate fixture + offset + export opens upright |
-| UI | Component tests optional; critical path E2E optional later |
+| Area            | Approach                                                                                                                                                                                                           |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `core` edit ops | Pure unit tests: boundaries, remapping of `removedSegments`, min gap, page clamp; **`suggestGridFromText`** with synthetic word boxes                                                                              |
+| Coordinates     | View ↔ unrotated page ↔ PDF round-trip tests, including 90° and 270° axis swap; fixture PDFs: portrait, landscape, Rotate 90/180/270, CropBox ≠ MediaBox; non-zero `rotationOffset` with matching export `/Rotate` |
+| Export          | Byte-level smoke (PDF loads) + rendered pixel probes on known segment positions; assert exported `/Rotate` equals `effectiveRotate`                                                                                |
+| Page rotation   | Unit: a rotation that changes `effectiveRotate` removes that page’s grids and leaves other pages alone; unchanged effective rotation is a no-op. Manual: wrong-Rotate fixture + offset + export opens upright      |
+| UI              | Component tests optional; critical path E2E optional later                                                                                                                                                         |
 
 **Gate:** Coordinate fixtures (implementation plan 2) and core grid tests (plan 3) must pass before building the SVG overlay (plan 4).
 
@@ -555,17 +555,17 @@ The in-memory **source** bytes and the `source.pdf` entry in a project zip are n
 
 Each item below should become a **separate detailed plan** that can land independently while preserving §3 module boundaries and §4 coordinate rules.
 
-| # | Plan | Delivers |
-| --- | --- | --- |
-| 1 | App shell and viewer | Vite/React/TS, open PDF, pdf.js multi-page view, zoom/pan |
-| 2 | Coordinates | Page clamp rect, **view space**, view ↔ PDF adapter (with `effectiveRotate`), viewport/pointer, text quads → view boxes, fixture tests |
-| 3 | Core grid operations | Model + all §6 edits (except text suggestion), unit tests, no UI |
-| 3b | Text-assisted grid suggestion | `pdf` text adapter + `core.suggestGridFromText` (§6.2), unit/integration tests |
-| 4 | SVG overlay | Create (bbox + suggestion hook), move, drag boundaries, add/remove rows/cols, segment toggle |
-| 5 | Selection and undo | Selection model, history stack, keyboard nudge (optional) |
-| 6 | Project zip | Save/load §8 format, hash check, missing-page warnings |
-| 7 | Content-stream export | pdf-lib adapter, set `/Rotate` on export, download, visual regression on fixtures |
-| 8 | Scale and polish | Page virtualization, render cancellation, page multi-select rotation |
+| #   | Plan                          | Delivers                                                                                                                               |
+| --- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | App shell and viewer          | Vite/React/TS, open PDF, pdf.js multi-page view, zoom/pan                                                                              |
+| 2   | Coordinates                   | Page clamp rect, **view space**, view ↔ PDF adapter (with `effectiveRotate`), viewport/pointer, text quads → view boxes, fixture tests |
+| 3   | Core grid operations          | Model + all §6 edits (except text suggestion), unit tests, no UI                                                                       |
+| 3b  | Text-assisted grid suggestion | `pdf` text adapter + `core.suggestGridFromText` (§6.2), unit/integration tests                                                         |
+| 4   | SVG overlay                   | Create (bbox + suggestion hook), move, drag boundaries, add/remove rows/cols, segment toggle                                           |
+| 5   | Selection and undo            | Selection model, history stack, keyboard nudge (optional)                                                                              |
+| 6   | Project zip                   | Save/load §8 format, hash check, missing-page warnings                                                                                 |
+| 7   | Content-stream export         | pdf-lib adapter, set `/Rotate` on export, download, visual regression on fixtures                                                      |
+| 8   | Scale and polish              | Page virtualization, render cancellation, page multi-select rotation                                                                   |
 
 **Order constraint:** Plans **2** and **3** before **4**. Plan **3b** before or with **4** (create-grid UX depends on it).
 
@@ -573,17 +573,17 @@ Each item below should become a **separate detailed plan** that can land indepen
 
 ## Document history
 
-| Version | Date | Notes |
-| --- | --- | --- |
-| 1 | 2026-09-26 | Initial overall design; working stack pdf.js + pdf-lib; project zip + content-stream export |
-| 1.1 | 2026-09-26 | Per-page rotation correction (§4.6); export sets `/Rotate` to effective rotation (§9.7) |
-| 1.2 | 2026-10-07 | Text-assisted grid suggestion (§6.2); column lines at gutter **centers**; OCR/vector line detect remain non-goals |
-| 1.3 | 2026-10-07 | **Canonical page space (top-left, y down)**; TL ↔ PDF conversion only in `pdf` module (§4) |
-| 1.4 | 2026-10-08 | **Canonical view space** for grids and suggestion (§4.1, §6.2); rotation deletes that page’s grids instead of transforming them (§4.6, §6.9) |
-| 1.5 | 2026-10-08 | `SegmentRef` uses `rowIndex` and `columnIndex` into `rowBoundaries` and `colBoundaries` (§5.2); split/remove remap those indices (§6.5, §6.6). A split does not add `removedSegments` entries for the new boundary |
-| 1.6 | 2026-10-08 | Password-protected PDFs are out of scope (§1, §9.5); password UI removed from plan 8 |
-| 1.7 | 2026-10-08 | Project archive extension is `.zip` (§8.1) |
-| 1.8 | 2026-10-08 | v1 is undo only; no redo stack (§6.10) |
-| 1.9 | 2026-10-08 | One global line style for every grid (§5.1, §8.2); `Grid` no longer stores `style` |
-| 1.10 | 2026-10-08 | Overlapping grids draw both strokes; shared edges are not snapped (§5.4) |
-| 1.11 | 2026-10-08 | Stack stays pdf.js + pdf-lib; no switch to MuPDF.wasm (§2.2) |
+| Version | Date       | Notes                                                                                                                                                                                                              |
+| ------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1       | 2026-09-26 | Initial overall design; working stack pdf.js + pdf-lib; project zip + content-stream export                                                                                                                        |
+| 1.1     | 2026-09-26 | Per-page rotation correction (§4.6); export sets `/Rotate` to effective rotation (§9.7)                                                                                                                            |
+| 1.2     | 2026-10-07 | Text-assisted grid suggestion (§6.2); column lines at gutter **centers**; OCR/vector line detect remain non-goals                                                                                                  |
+| 1.3     | 2026-10-07 | **Canonical page space (top-left, y down)**; TL ↔ PDF conversion only in `pdf` module (§4)                                                                                                                         |
+| 1.4     | 2026-10-08 | **Canonical view space** for grids and suggestion (§4.1, §6.2); rotation deletes that page’s grids instead of transforming them (§4.6, §6.9)                                                                       |
+| 1.5     | 2026-10-08 | `SegmentRef` uses `rowIndex` and `columnIndex` into `rowBoundaries` and `colBoundaries` (§5.2); split/remove remap those indices (§6.5, §6.6). A split does not add `removedSegments` entries for the new boundary |
+| 1.6     | 2026-10-08 | Password-protected PDFs are out of scope (§1, §9.5); password UI removed from plan 8                                                                                                                               |
+| 1.7     | 2026-10-08 | Project archive extension is `.zip` (§8.1)                                                                                                                                                                         |
+| 1.8     | 2026-10-08 | v1 is undo only; no redo stack (§6.10)                                                                                                                                                                             |
+| 1.9     | 2026-10-08 | One global line style for every grid (§5.1, §8.2); `Grid` no longer stores `style`                                                                                                                                 |
+| 1.10    | 2026-10-08 | Overlapping grids draw both strokes; shared edges are not snapped (§5.4)                                                                                                                                           |
+| 1.11    | 2026-10-08 | Stack stays pdf.js + pdf-lib; no switch to MuPDF.wasm (§2.2)                                                                                                                                                       |

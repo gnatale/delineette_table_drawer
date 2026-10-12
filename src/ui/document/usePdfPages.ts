@@ -1,37 +1,37 @@
-import { useEffect, useState } from 'react'
-import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist'
+import { useEffect, useState } from "react";
+import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist";
 
 /**
  * Loads all page proxies when the document changes.
  */
 export function usePdfPages(document: PDFDocumentProxy | null): PDFPageProxy[] {
-  const [pages, setPages] = useState<PDFPageProxy[]>([])
+  const [pages, setPages] = useState<PDFPageProxy[]>([]);
 
   useEffect(() => {
     if (!document) {
-      return
+      return;
     }
 
-    let cancelled = false
-    const pageCount = document.numPages
+    let cancelled = false;
+    const pageCount = document.numPages;
 
     void (async () => {
-      const loaded: PDFPageProxy[] = []
+      const loaded: PDFPageProxy[] = [];
       for (let i = 1; i <= pageCount; i += 1) {
         if (cancelled) {
-          return
+          return;
         }
-        loaded.push(await document.getPage(i))
+        loaded.push(await document.getPage(i));
       }
       if (!cancelled) {
-        setPages(loaded)
+        setPages(loaded);
       }
-    })()
+    })();
 
     return () => {
-      cancelled = true
-    }
-  }, [document])
+      cancelled = true;
+    };
+  }, [document]);
 
-  return pages
+  return pages;
 }

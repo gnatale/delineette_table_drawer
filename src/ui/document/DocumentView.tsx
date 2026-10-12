@@ -1,31 +1,31 @@
-import { useCallback, useImperativeHandle, useRef } from 'react'
-import type { PDFDocumentProxy } from 'pdfjs-dist'
+import { useCallback, useImperativeHandle, useRef } from "react";
+import type { PDFDocumentProxy } from "pdfjs-dist";
 
-import { nearestPage, scaleToFitWidth } from './fitWidth.ts'
-import { PageCanvas } from './PageCanvas.tsx'
-import { useDocumentPan } from './useDocumentPan.ts'
-import { useDocumentZoom } from './useDocumentZoom.ts'
-import { usePdfPages } from './usePdfPages.ts'
-import './DocumentView.css'
+import { nearestPage, scaleToFitWidth } from "./fitWidth.ts";
+import { PageCanvas } from "./PageCanvas.tsx";
+import { useDocumentPan } from "./useDocumentPan.ts";
+import { useDocumentZoom } from "./useDocumentZoom.ts";
+import { usePdfPages } from "./usePdfPages.ts";
+import "./DocumentView.css";
 
-const PAGE_STACK_PADDING_PX = 16
+const PAGE_STACK_PADDING_PX = 16;
 
 export type DocumentViewHandle = {
   /** Record the viewport center as the point that stays fixed on the next zoom. */
-  prepareZoomAnchorCenter: () => void
+  prepareZoomAnchorCenter: () => void;
   /** Record a screen point (usually the cursor) as the point that stays fixed on the next zoom. */
-  prepareZoomAnchorPoint: (clientX: number, clientY: number) => void
-  fitWidth: () => void
-}
+  prepareZoomAnchorPoint: (clientX: number, clientY: number) => void;
+  fitWidth: () => void;
+};
 
 type DocumentViewProps = {
-  document: PDFDocumentProxy | null
-  scale: number
-  onScaleChange: (scale: number) => void
-  status: 'empty' | 'loading' | 'ready' | 'error'
-  errorMessage: string | null
-  ref?: React.Ref<DocumentViewHandle>
-}
+  document: PDFDocumentProxy | null;
+  scale: number;
+  onScaleChange: (scale: number) => void;
+  status: "empty" | "loading" | "ready" | "error";
+  errorMessage: string | null;
+  ref?: React.Ref<DocumentViewHandle>;
+};
 
 export function DocumentView({
   document,
@@ -35,35 +35,35 @@ export function DocumentView({
   errorMessage,
   ref,
 }: DocumentViewProps) {
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const pageStackRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const pageStackRef = useRef<HTMLDivElement>(null);
 
-  const pages = usePdfPages(document)
+  const pages = usePdfPages(document);
   const { prepareCenter, preparePoint } = useDocumentZoom(
     scrollRef,
     scale,
     onScaleChange,
-  )
-  const pan = useDocumentPan(scrollRef)
+  );
+  const pan = useDocumentPan(scrollRef);
 
   const fitWidth = useCallback(() => {
-    const scrollEl = scrollRef.current
-    const stackEl = pageStackRef.current
+    const scrollEl = scrollRef.current;
+    const stackEl = pageStackRef.current;
     if (!scrollEl || !stackEl || pages.length === 0) {
-      return
+      return;
     }
 
-    const page = nearestPage(pages, stackEl, scrollEl.scrollTop)
+    const page = nearestPage(pages, stackEl, scrollEl.scrollTop);
     const next =
       page &&
-      scaleToFitWidth(page, scrollEl.clientWidth, PAGE_STACK_PADDING_PX)
+      scaleToFitWidth(page, scrollEl.clientWidth, PAGE_STACK_PADDING_PX);
     if (next == null) {
-      return
+      return;
     }
 
-    prepareCenter()
-    onScaleChange(next)
-  }, [onScaleChange, pages, prepareCenter])
+    prepareCenter();
+    onScaleChange(next);
+  }, [onScaleChange, pages, prepareCenter]);
 
   useImperativeHandle(
     ref,
@@ -73,17 +73,17 @@ export function DocumentView({
       fitWidth,
     }),
     [fitWidth, prepareCenter, preparePoint],
-  )
+  );
 
-  const showEmpty = status === 'empty'
-  const showLoading = status === 'loading'
-  const showError = status === 'error' && errorMessage
-  const showPages = status === 'ready' && document && pages.length > 0
+  const showEmpty = status === "empty";
+  const showLoading = status === "loading";
+  const showError = status === "error" && errorMessage;
+  const showPages = status === "ready" && document && pages.length > 0;
 
   return (
     <div
       ref={scrollRef}
-      className={`document-scroll${pan.isPanning ? ' document-scroll--panning' : ''}`}
+      className={`document-scroll${pan.isPanning ? " document-scroll--panning" : ""}`}
       onPointerDown={pan.onPointerDown}
       onPointerMove={pan.onPointerMove}
       onPointerUp={pan.endPan}
@@ -116,5 +116,5 @@ export function DocumentView({
         </div>
       )}
     </div>
-  )
+  );
 }

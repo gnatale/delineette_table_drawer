@@ -21,10 +21,10 @@ Keep comments next to the line they explain. A few lines is enough; the `PageCan
 
 ```typescript
 // ❌ BAD — restates the code
-el.scrollLeft = next.scrollLeft
+el.scrollLeft = next.scrollLeft;
 
 // ✅ GOOD — explains why
 /* capture the pointer so we can move the page without losing it
  * when the pointer leaves the element */
-el.setPointerCapture(event.pointerId)
+el.setPointerCapture(event.pointerId);
 ```

@@ -1,6 +1,6 @@
-import type { PDFPageProxy } from 'pdfjs-dist'
+import type { PDFPageProxy } from "pdfjs-dist";
 
-import { clampScale } from '../shared/zoom.ts'
+import { clampScale } from "../shared/zoom.ts";
 
 /** Page whose top edge is closest to the scroll viewport top. */
 export function nearestPage(
@@ -8,24 +8,24 @@ export function nearestPage(
   stackEl: HTMLElement,
   scrollTop: number,
 ): PDFPageProxy | null {
-  let nearest: PDFPageProxy | null = null
-  let nearestDistance = Number.POSITIVE_INFINITY
+  let nearest: PDFPageProxy | null = null;
+  let nearestDistance = Number.POSITIVE_INFINITY;
 
   for (const page of pages) {
     const wrapper = stackEl.querySelector<HTMLElement>(
       `[data-page-wrapper="${page.pageNumber}"]`,
-    )
+    );
     if (!wrapper) {
-      continue
+      continue;
     }
-    const distance = Math.abs(wrapper.offsetTop - scrollTop)
+    const distance = Math.abs(wrapper.offsetTop - scrollTop);
     if (distance < nearestDistance) {
-      nearestDistance = distance
-      nearest = page
+      nearestDistance = distance;
+      nearest = page;
     }
   }
 
-  return nearest
+  return nearest;
 }
 
 /** Scale that fits the page width into the viewport minus horizontal padding, or null if invalid. */
@@ -37,10 +37,10 @@ export function scaleToFitWidth(
   const viewport = page.getViewport({
     scale: 1,
     rotation: page.rotate,
-  })
-  const availableWidth = clientWidth - paddingPx * 2
+  });
+  const availableWidth = clientWidth - paddingPx * 2;
   if (availableWidth <= 0 || viewport.width <= 0) {
-    return null
+    return null;
   }
-  return clampScale(availableWidth / viewport.width)
+  return clampScale(availableWidth / viewport.width);
 }

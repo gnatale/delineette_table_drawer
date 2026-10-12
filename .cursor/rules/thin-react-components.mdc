@@ -25,21 +25,23 @@ Pure calculations with no React state belong in plain modules (`panGesture.ts`, 
 ```tsx
 // ❌ BAD — pan state and pointer handlers inline in the component
 function DocumentView() {
-  const [isPanning, setIsPanning] = useState(false)
-  const onPointerDown = (event) => { /* ... */ }
+  const [isPanning, setIsPanning] = useState(false);
+  const onPointerDown = (event) => {
+    /* ... */
+  };
   // ...
 }
 
 // ✅ GOOD — hook owns behavior; component wires JSX
 function DocumentView() {
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const pan = useDocumentPan(scrollRef)
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const pan = useDocumentPan(scrollRef);
   return (
     <div
       ref={scrollRef}
       onPointerDown={pan.onPointerDown}
       onPointerMove={pan.onPointerMove}
     />
-  )
+  );
 }
 ```

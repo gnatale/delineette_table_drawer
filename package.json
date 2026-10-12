@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint .",
+    "format": "prettier --write .",
     "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json",
     "prepare": "husky"
   },
@@ -27,13 +28,29 @@
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
     "husky": "^9.1.7",
+    "eslint-config-prettier": "^10.1.8",
     "lint-staged": "^16.2.7",
+    "prettier": "^3.6.2",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.48.0",
     "vite": "^8.3.0",
     "vite-plugin-static-copy": "^4.1.1"
   },
   "lint-staged": {
-    "*.{ts,tsx}": "eslint"
+    "*.{ts,tsx}": [
+      "prettier --write",
+      "eslint"
+    ],
+    "*.{js,mjs,cjs,css,html,json,md,mdc}": "prettier --write"
+  },
+  "prettier": {
+    "overrides": [
+      {
+        "files": "*.mdc",
+        "options": {
+          "parser": "markdown"
+        }
+      }
+    ]
   }
 }

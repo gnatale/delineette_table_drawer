@@ -1,13 +1,13 @@
-import { useEffect, useRef } from 'react'
-import type { PDFPageProxy } from 'pdfjs-dist'
+import { useEffect, useRef } from "react";
+import type { PDFPageProxy } from "pdfjs-dist";
 
-import { renderPageToCanvas } from '../../pdf/index.ts'
-import './PageCanvas.css'
+import { renderPageToCanvas } from "../../pdf/index.ts";
+import "./PageCanvas.css";
 
 type PageCanvasProps = {
-  page: PDFPageProxy
-  scale: number
-}
+  page: PDFPageProxy;
+  scale: number;
+};
 
 /**
  * One PDF page as a `<canvas>`. Re-renders when `page` or `scale` changes.
@@ -18,20 +18,20 @@ type PageCanvasProps = {
  * after a newer scale or document.
  */
 export function PageCanvas({ page, scale }: PageCanvasProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const canvas = canvasRef.current
+    const canvas = canvasRef.current;
     if (!canvas) {
-      return
+      return;
     }
 
-    const handle = renderPageToCanvas({ page, canvas, scale })
+    const handle = renderPageToCanvas({ page, canvas, scale });
 
     return () => {
-      handle.cancel()
-    }
-  }, [page, scale])
+      handle.cancel();
+    };
+  }, [page, scale]);
 
   return (
     <canvas
@@ -39,5 +39,5 @@ export function PageCanvas({ page, scale }: PageCanvasProps) {
       className="page-canvas"
       data-page-number={page.pageNumber}
     />
-  )
+  );
 }

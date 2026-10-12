@@ -1,14 +1,14 @@
-import { GlobalWorkerOptions } from 'pdfjs-dist'
+import { GlobalWorkerOptions } from "pdfjs-dist";
 
-import workerSrc from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
+import workerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
-let workerConfigured = false
+let workerConfigured = false;
 
 /** Configure the pdf.js worker once before any document load. */
 export function ensurePdfWorker(): void {
   if (workerConfigured) {
-    return
+    return;
   }
-  GlobalWorkerOptions.workerSrc = workerSrc
-  workerConfigured = true
+  GlobalWorkerOptions.workerSrc = workerSrc;
+  workerConfigured = true;
 }

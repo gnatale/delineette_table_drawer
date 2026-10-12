@@ -22,6 +22,20 @@ export class LoadPdfError extends Error {
 // import.meta.env.BASE_URL matches Vite’s `base` option (e.g. subpath deploys).
 const PDFJS_ASSET_BASE = `${import.meta.env.BASE_URL}pdfjs`
 
+// instanceof misses errors rebuilt across the pdf.js worker boundary, and
+// errors from a second bundled copy of pdfjs-dist (different constructor).
+function isPasswordException(error: unknown): boolean {
+  if (error instanceof PasswordException) {
+    return true
+  }
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'name' in error &&
+    (error as { name: string }).name === 'PasswordException'
+  )
+}
+
 function documentLoadOptions(data: ArrayBuffer) {
   return {
     data: new Uint8Array(data),
@@ -42,7 +56,7 @@ export async function loadDocument(data: ArrayBuffer): Promise<PDFDocumentProxy>
   try {
     return await loadingTask.promise
   } catch (error: unknown) {
-    if (error instanceof PasswordException) {
+    if (isPasswordException(error)) {
       throw new LoadPdfError(
         'password',
         'This PDF is password-protected and cannot be opened.',

@@ -11,7 +11,7 @@ npm install
 npm run dev
 ```
 
-`npm install` also sets up the Git hooks. The dev server prints a local URL; open it in a browser.
+`npm install` also sets up the Git hooks. The dev server serves the app at [http://localhost:5173/](http://localhost:5173/). If that port is already in use, Vite picks the next free port and prints the URL in the terminal.
 
 ## Build
 

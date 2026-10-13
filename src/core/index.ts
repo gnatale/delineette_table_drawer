@@ -1,3 +1,3 @@
-/** Grid model and edit operations (plan 3+). No pdf.js, pdf-lib, or React imports. */
+/** Grid model and edit operations. No pdf.js, pdf-lib, or React imports. */
 
 export {};

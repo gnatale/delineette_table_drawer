@@ -2,7 +2,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import react from "@vitejs/plugin-react";
-import { defineConfig, normalizePath } from "vite";
+import { normalizePath } from "vite";
+import { defineConfig } from "vitest/config";
 import { viteStaticCopy } from "vite-plugin-static-copy";
 
 const pdfJsDistPath = path.dirname(
@@ -11,6 +12,10 @@ const pdfJsDistPath = path.dirname(
 
 // https://vite.dev/config/
 export default defineConfig({
+  test: {
+    environment: "node",
+    include: ["src/**/*.test.ts"],
+  },
   plugins: [
     react(),
     viteStaticCopy({

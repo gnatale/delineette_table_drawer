@@ -28,6 +28,7 @@ export function renderPageToCanvas({
   const viewport = page.getViewport({ scale, rotation });
   const outputScale = new OutputScale();
 
+  /* Flooring here because canvas width/height must be an integer. */
   const cssWidth = Math.floor(viewport.width);
   const cssHeight = Math.floor(viewport.height);
 

@@ -15,6 +15,19 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["src/**/*.test.ts"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "html"],
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: [
+        // Test helpers and the suite itself are not product code.
+        "src/**/*.test.ts",
+        "src/pdf/test/**",
+        // Browser UI is covered later by Playwright, not by this Node unit suite.
+        "src/ui/**",
+        "src/main.tsx",
+      ],
+    },
   },
   plugins: [
     react(),
